@@ -1,8 +1,7 @@
-// src/services/api.js
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Replace with your actual backend URL
+    baseURL: 'http://localhost:5000/api',
 });
 
 export const getBarChart = async (month) => {
@@ -59,5 +58,15 @@ export const getCombinedData = async (month) => {
     } catch (error) {
         console.error('Error fetching combined data:', error);
         return {};
+    }
+};
+
+export const getMongoData = async (month) => {
+    try {
+        const response = await api.get('/mongo-data', { params: { month } });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching MongoDB data:', error);
+        return { transactions: [], total: 0 };
     }
 };

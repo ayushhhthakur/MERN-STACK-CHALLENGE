@@ -36,13 +36,10 @@ app.get('/api/transactions', async (req, res) => {
 
     const query = {
         dateOfSale: { $gte: start, $lt: end },
-        ...(search && {
-            $or: [
-                { title: new RegExp(search, 'i') },
-                { description: new RegExp(search, 'i') },
-                { price: new RegExp(search, 'i') },
-            ],
-        }),
+        $or: [
+            { title: { $regex: new RegExp(search, 'i') } },
+            { description: { $regex: new RegExp(search, 'i') } },
+        ],
     };
 
     try {
@@ -52,6 +49,7 @@ app.get('/api/transactions', async (req, res) => {
         const total = await Transaction.countDocuments(query);
         res.status(200).json({ transactions, total });
     } catch (error) {
+        console.error('Error fetching transactions:', error);
         res.status(500).send(error.message);
     }
 });
@@ -135,10 +133,17 @@ app.get('/api/combined', async (req, res) => {
     const { month } = req.query;
 
     try {
-        const transactionsResponse = await axios.get(`http://localhost:5000/api/transactions?month=${month}`);
-        const statisticsResponse = await axios.get(`http://localhost:5000/api/statistics?month=${month}`);
-        const barChartResponse = await axios.get(`http://localhost:5000/api/bar-chart?month=${month}`);
-        const pieChartResponse = await axios.get(`http://localhost:5000/api/pie-chart?month=${month}`);
+        const transactionsPromise = axios.get(`http://localhost:5000/api/transactions?month=${month}`);
+        const statisticsPromise = axios.get(`http://localhost:5000/api/statistics?month=${month}`);
+        const barChartPromise = axios.get(`http://localhost:5000/api/bar-chart?month=${month}`);
+        const pieChartPromise = axios.get(`http://localhost:5000/api/pie-chart?month=${month}`);
+
+        const [transactionsResponse, statisticsResponse, barChartResponse, pieChartResponse] = await Promise.all([
+            transactionsPromise,
+            statisticsPromise,
+            barChartPromise,
+            pieChartPromise
+        ]);
 
         res.status(200).json({
             transactions: transactionsResponse.data,
@@ -147,6 +152,17 @@ app.get('/api/combined', async (req, res) => {
             pieChart: pieChartResponse.data,
         });
     } catch (error) {
+        console.error('Error combining data:', error);
+        res.status(500).send(error.message);
+    }
+});
+
+app.get('/api/all-transactions', async (req, res) => {
+    try {
+        const transactions = await Transaction.find({});
+        res.status(200).json(transactions);
+    } catch (error) {
+        console.error('Error fetching all transactions:', error);
         res.status(500).send(error.message);
     }
 });
